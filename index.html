@@ -1,0 +1,1344 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ADP · Refinamiento de historias | Demo Telmex</title>
+  <meta name="description" content="Flujograma interactivo del refinamiento de historias de usuario con ADP Delivery Platform. Demo para Telmex." />
+  <style>
+    :root {
+      --navy: #032d60;
+      --blue: #0176d3;
+      --blue-deep: #0b5cab;
+      --bg: #f3f3f3;
+      --green: #04844b;
+      --green-deep: #03663a;
+      --orange: #fe9339;
+      --ink: #181818;
+      --muted: #44474c;
+      --line: #e5e5e5;
+      --card: #ffffff;
+      --track: #7e93a8;
+      --shadow: 0 8px 24px rgba(3, 45, 96, 0.08);
+      --radius: 14px;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      height: 100%;
+      overflow: hidden;
+    }
+
+    body {
+      font-family: "Salesforce Sans", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(1200px 420px at 10% -10%, rgba(1, 118, 211, 0.16), transparent 55%),
+        radial-gradient(900px 380px at 100% 0%, rgba(3, 45, 96, 0.08), transparent 50%),
+        var(--bg);
+    }
+
+    button, input { font: inherit; }
+
+    .app {
+      height: 100dvh;
+      max-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .topbar {
+      height: 4px;
+      background: var(--navy);
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 10px 20px;
+      background: var(--navy);
+      color: #fff;
+      flex-shrink: 0;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    .brand svg { display: block; flex: 0 0 auto; }
+
+    .brand h1 {
+      margin: 0;
+      font-size: 18px;
+      line-height: 1.2;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+    }
+
+    .brand p {
+      margin: 2px 0 0;
+      font-size: 12.5px;
+      line-height: 1.35;
+      color: rgba(255, 255, 255, 0.82);
+    }
+
+    .step-readout {
+      text-align: right;
+      min-width: 180px;
+    }
+
+    .step-readout strong {
+      display: block;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .step-readout span {
+      display: block;
+      margin-top: 2px;
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.78);
+    }
+
+    .progress {
+      height: 6px;
+      background: #d8e2ee;
+      flex-shrink: 0;
+    }
+
+    .progress > span {
+      display: block;
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--blue), #1b96ff);
+      transition: width 0.6s ease;
+    }
+
+    .workspace {
+      flex: 1 1 auto;
+      min-height: 0;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 340px;
+      gap: 12px;
+      padding: 12px 14px 6px;
+    }
+
+    .canvas {
+      position: relative;
+      background: var(--card);
+      border: 1px solid rgba(3, 45, 96, 0.08);
+      border-radius: 18px;
+      box-shadow: var(--shadow);
+      overflow: auto;
+      min-height: 420px;
+    }
+
+    #wires {
+      position: absolute;
+      inset: 0;
+      overflow: visible;
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    .grid {
+      position: relative;
+      z-index: 2;
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      grid-template-areas:
+        "n0 n1 n2 n3 n4"
+        "n8 n7 n6 n5 .";
+      gap: 42px 26px;
+      padding: 40px 12px 8px 40px;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    .node {
+      grid-area: var(--area);
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 6px;
+      width: 100%;
+      min-width: 0;
+      height: 100%;
+      text-align: left;
+      padding: 12px 12px 11px;
+      border-radius: var(--radius);
+      border: 1px solid var(--line);
+      background: #fff;
+      color: var(--ink);
+      cursor: pointer;
+      box-shadow: 0 1px 2px rgba(3, 45, 96, 0.04);
+      transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+    }
+
+    .node:hover {
+      border-color: #8ebeea;
+      transform: translateY(-1px);
+    }
+
+    .node:focus-visible {
+      outline: 3px solid rgba(1, 118, 211, 0.45);
+      outline-offset: 2px;
+    }
+
+    .node.is-visited {
+      border-color: #b9d6f4;
+      background: linear-gradient(180deg, #f7fbff 0%, #fff 42%);
+    }
+
+    .node.is-active {
+      border-color: var(--blue);
+      box-shadow: 0 0 0 3px rgba(1, 118, 211, 0.18), 0 10px 22px rgba(3, 45, 96, 0.1);
+      transform: translateY(-1px);
+    }
+
+    .node.is-alert.is-active {
+      border-color: var(--orange);
+      box-shadow: 0 0 0 3px rgba(254, 147, 57, 0.28), 0 10px 22px rgba(3, 45, 96, 0.1);
+    }
+
+    .node-top {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      width: 100%;
+    }
+
+    .icon {
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      display: grid;
+      place-items: center;
+      background: #eaf4fd;
+      color: var(--blue-deep);
+      flex: 0 0 auto;
+    }
+
+    .icon svg { width: 18px; height: 18px; display: block; }
+
+    .node.is-active .icon {
+      background: var(--blue);
+      color: #fff;
+    }
+
+    .node.is-alert.is-active .icon {
+      background: var(--orange);
+      color: #fff;
+    }
+
+    .step-no {
+      margin-left: auto;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      color: var(--navy);
+      background: #eef3f8;
+      border-radius: 999px;
+      padding: 2px 7px;
+    }
+
+    .node.is-active .step-no {
+      background: var(--navy);
+      color: #fff;
+    }
+
+    .node h2 {
+      margin: 0;
+      font-size: 13.5px;
+      line-height: 1.25;
+      letter-spacing: -0.01em;
+      color: var(--navy);
+    }
+
+    .node .sub {
+      margin: 0;
+      font-size: 12px;
+      line-height: 1.35;
+      color: var(--muted);
+    }
+
+    .badge {
+      display: none;
+      margin-top: auto;
+      max-width: 100%;
+      padding: 3px 7px;
+      border-radius: 999px;
+      font-size: 10.5px;
+      font-weight: 700;
+      letter-spacing: 0.01em;
+      line-height: 1.25;
+      white-space: normal;
+    }
+
+    .badge.show { display: inline-block; }
+
+    .badge.warn {
+      color: #7a3e00;
+      background: #fff1e4;
+    }
+
+    .badge.back {
+      color: var(--navy);
+      background: #e7eef8;
+    }
+
+    .badge.ok {
+      color: var(--green-deep);
+      background: #e6f6ee;
+    }
+
+    .legend {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px 18px;
+      padding: 4px 22px 16px 48px;
+      max-width: 1100px;
+      margin: 0 auto;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .legend span { display: inline-flex; align-items: center; gap: 7px; }
+
+    .swatch {
+      width: 22px;
+      height: 3px;
+      border-radius: 99px;
+      display: inline-block;
+    }
+
+    .swatch.main { background: var(--blue); }
+    .swatch.adj { background: var(--navy); }
+    .swatch.learn { background: var(--green); }
+
+    .pill {
+      position: absolute;
+      z-index: 3;
+      left: 0;
+      top: 0;
+      opacity: 0;
+      transform: translate(-50%, -50%);
+      padding: 3px 8px;
+      border-radius: 999px;
+      background: #fff;
+      border: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.01em;
+      white-space: nowrap;
+      pointer-events: none;
+      box-shadow: 0 1px 2px rgba(3, 45, 96, 0.05);
+    }
+
+    .pill.placed { opacity: 1; }
+
+    .pill.is-on.adj {
+      color: var(--navy);
+      border-color: #b7c6da;
+      background: #f4f7fb;
+    }
+
+    .pill.is-on.learn {
+      color: var(--green-deep);
+      border-color: #b7e0cb;
+      background: #f3fbf7;
+    }
+
+    #wires path {
+      fill: none;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    #wires .track {
+      stroke: var(--track);
+      stroke-width: 2.25;
+    }
+
+    #wires .track.kind-adj { stroke: #032d60; stroke-opacity: 0.45; }
+    #wires .track.kind-learn { stroke: #04844b; stroke-opacity: 0.55; }
+    #wires .track.covered { marker-end: none; }
+
+    #wires .flow {
+      stroke-width: 2.6;
+      stroke-dasharray: 1;
+      stroke-dashoffset: 1;
+      transition: stroke-dashoffset 0.9s ease;
+    }
+
+    #wires .flow.kind-main { stroke: var(--blue); }
+    #wires .flow.kind-adj { stroke: var(--navy); }
+    #wires .flow.kind-learn { stroke: var(--green); }
+
+    #wires .flow.drawn { stroke-dashoffset: 0; }
+
+    #wires .flow.active {
+      stroke-width: 3.4;
+      filter: drop-shadow(0 0 4px rgba(1, 118, 211, 0.35));
+    }
+
+    #wires .flow.kind-learn.active {
+      filter: drop-shadow(0 0 4px rgba(4, 132, 75, 0.35));
+    }
+
+    .panel {
+      background: var(--card);
+      border: 1px solid rgba(3, 45, 96, 0.08);
+      border-radius: 18px;
+      box-shadow: var(--shadow);
+      overflow: auto;
+      padding: 18px 18px 20px;
+      min-height: 0;
+    }
+
+    .eyebrow {
+      margin: 0 0 6px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--blue);
+    }
+
+    .panel h2 {
+      margin: 0;
+      font-size: 22px;
+      line-height: 1.2;
+      letter-spacing: -0.02em;
+      color: var(--navy);
+    }
+
+    .actor {
+      margin: 8px 0 0;
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .callout {
+      margin: 14px 0 0;
+      padding: 10px 12px;
+      border-radius: 12px;
+      background: #f4f8fd;
+      border-left: 3px solid var(--blue);
+      font-size: 13.5px;
+      line-height: 1.45;
+      color: var(--navy);
+    }
+
+    .callout.warn {
+      background: #fff6ee;
+      border-left-color: var(--orange);
+    }
+
+    .callout.ok {
+      background: #f2fbf6;
+      border-left-color: var(--green);
+    }
+
+    .body {
+      margin: 12px 0 0;
+      font-size: 14px;
+      line-height: 1.5;
+      color: var(--ink);
+    }
+
+    .body ul {
+      margin: 8px 0 0;
+      padding-left: 18px;
+    }
+
+    .body li { margin: 4px 0; }
+
+    .story {
+      margin-top: 16px;
+      padding-top: 14px;
+      border-top: 1px solid var(--line);
+    }
+
+    .story h3 {
+      margin: 0 0 4px;
+      font-size: 13px;
+      color: var(--navy);
+    }
+
+    .story .hint {
+      margin: 0 0 10px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .checks {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .checks li {
+      display: flex;
+      gap: 8px;
+      align-items: flex-start;
+      font-size: 12px;
+      line-height: 1.3;
+      color: #8a8d91;
+    }
+
+    .checks li .mark {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      border: 1.5px solid #c9c9c9;
+      flex: 0 0 auto;
+      margin-top: 1px;
+      position: relative;
+    }
+
+    .checks li.is-done {
+      color: var(--ink);
+    }
+
+    .checks li.is-done .mark {
+      border-color: var(--green);
+      background: var(--green);
+    }
+
+    .checks li.is-done .mark::after {
+      content: "";
+      position: absolute;
+      left: 4px;
+      top: 2px;
+      width: 4px;
+      height: 7px;
+      border: solid #fff;
+      border-width: 0 1.6px 1.6px 0;
+      transform: rotate(45deg);
+    }
+
+    .checks li.is-current .mark {
+      box-shadow: 0 0 0 3px rgba(4, 132, 75, 0.18);
+    }
+
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+      padding: 6px 14px 2px;
+      flex-shrink: 0;
+    }
+
+    .metric {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 10px 12px 12px;
+      min-width: 0;
+      transition: border-color 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease;
+    }
+
+    .metric .kicker {
+      margin: 0;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--blue);
+    }
+
+    .metric .value {
+      margin: 3px 0 2px;
+      font-size: 20px;
+      line-height: 1.1;
+      letter-spacing: -0.03em;
+      color: var(--navy);
+      font-weight: 700;
+    }
+
+    .metric .copy {
+      margin: 0;
+      font-size: 12.5px;
+      line-height: 1.35;
+      color: var(--muted);
+    }
+
+    .metrics.is-complete .metric {
+      background: #f3fbf7;
+      border: 2px solid var(--green);
+      box-shadow: 0 8px 18px rgba(4, 132, 75, 0.12);
+      animation: rise 0.55s ease both;
+    }
+
+    .metrics.is-complete .metric:nth-child(2) { animation-delay: 0.08s; }
+    .metrics.is-complete .metric:nth-child(3) { animation-delay: 0.16s; }
+
+    .metrics.is-complete .kicker { color: var(--green-deep); }
+
+    @keyframes rise {
+      from { transform: translateY(6px); opacity: 0.4; }
+      to { transform: none; opacity: 1; }
+    }
+
+    .controls {
+      display: grid;
+      grid-template-columns: 140px minmax(0, 1fr) 140px;
+      grid-template-areas:
+        "caption caption caption"
+        "prev demo next"
+        "keys keys keys";
+      gap: 8px 12px;
+      align-items: center;
+      padding: 4px 14px 10px;
+      flex-shrink: 0;
+    }
+
+    #prev { grid-area: prev; }
+    #next { grid-area: next; }
+    #demo { grid-area: demo; }
+
+    .caption {
+      grid-area: caption;
+      margin: 0;
+      text-align: center;
+      font-size: 13.5px;
+      line-height: 1.4;
+      color: var(--navy);
+      min-height: 1.4em;
+    }
+
+    .nav {
+      height: 40px;
+      border-radius: 10px;
+      border: 1px solid #c9c9c9;
+      background: #fff;
+      color: var(--navy);
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .nav:hover:not(:disabled) { border-color: var(--blue); color: var(--blue-deep); }
+
+    .nav:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    .nav:focus-visible, .demo:focus-visible {
+      outline: 3px solid rgba(1, 118, 211, 0.45);
+      outline-offset: 2px;
+    }
+
+    .demo {
+      height: 42px;
+      min-width: 190px;
+      justify-self: center;
+      align-self: center;
+      border: 0;
+      border-radius: 10px;
+      background: var(--blue);
+      color: #fff;
+      font-weight: 700;
+      cursor: pointer;
+      padding: 0 18px;
+      box-shadow: 0 6px 16px rgba(1, 118, 211, 0.28);
+    }
+
+    .demo:hover { background: var(--blue-deep); }
+
+    .demo.is-pause { background: var(--navy); box-shadow: none; }
+
+    .keys {
+      grid-area: keys;
+      margin: 0;
+      text-align: center;
+      font-size: 11.5px;
+      color: #706e6b;
+    }
+
+    @media (max-height: 860px) {
+      .grid { gap: 32px 18px; padding: 32px 8px 4px 34px; }
+      .node { padding: 8px 9px; gap: 4px; }
+      .node h2 { font-size: 12.5px; }
+      .metric { padding: 7px 10px 8px; }
+      .metric .value { font-size: 16px; }
+      header { padding: 8px 16px; }
+      .brand h1 { font-size: 16px; }
+    }
+
+    @media (max-width: 1100px) {
+      .workspace { grid-template-columns: 1fr; }
+      body { overflow: auto; }
+      .app { height: auto; max-height: none; overflow: visible; }
+      .grid {
+        grid-template-columns: 1fr;
+        grid-template-areas: none;
+        max-width: 520px;
+        gap: 36px;
+        padding: 28px 36px 12px 48px;
+      }
+      .node { grid-area: auto !important; }
+      .metrics { grid-template-columns: 1fr; }
+      .controls {
+        grid-template-columns: 1fr 1fr;
+        grid-template-areas:
+          "caption caption"
+          "demo demo"
+          "prev next"
+          "keys keys";
+      }
+      .legend { padding-left: 22px; }
+      header { align-items: flex-start; }
+      .step-readout { text-align: right; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation: none !important;
+        transition: none !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="topbar"></div>
+    <header>
+      <div class="brand">
+        <svg width="36" height="36" viewBox="0 0 36 36" aria-hidden="true">
+          <rect width="36" height="36" rx="9" fill="#ffffff"/>
+          <path fill="#0176D3" d="M10.2 24.2h12.6a3.7 3.7 0 0 0 .4-7.4 5.7 5.7 0 0 0-10.9-1.6 4 4 0 0 0-2.1 9z"/>
+        </svg>
+        <div>
+          <h1>ADP Delivery Platform</h1>
+          <p>Refinamiento de historias de usuario · Demo para Telmex · Rafael de Assis</p>
+        </div>
+      </div>
+      <div class="step-readout">
+        <strong id="stepTitle">Listo para iniciar</strong>
+        <span id="stepCount">Nodo 1 de 9</span>
+      </div>
+    </header>
+    <div class="progress" id="progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-label="Avance del recorrido">
+      <span id="progressBar"></span>
+    </div>
+
+    <div class="workspace">
+      <section class="canvas" id="canvas" aria-label="Flujograma de refinamiento">
+        <svg id="wires" aria-hidden="true"></svg>
+        <div class="grid" id="grid"></div>
+        <div class="legend">
+          <span><i class="swatch main"></i> Flujo principal</span>
+          <span><i class="swatch adj"></i> Ajustes del Product Owner</span>
+          <span><i class="swatch learn"></i> Aprendizaje continuo</span>
+        </div>
+        <div class="pill adj" id="pillAdj">Ajustes del PO</div>
+        <div class="pill learn" id="pillLearn">Aprendizaje continuo</div>
+      </section>
+
+      <aside class="panel" id="panel" aria-live="polite"></aside>
+    </div>
+
+    <section class="metrics" id="metrics" aria-label="Resultados del refinamiento">
+      <article class="metric">
+        <p class="kicker">Tiempo</p>
+        <p class="value">20–30 min</p>
+        <p class="copy">Reduce el tiempo de refinamiento entre 20 y 30 minutos por historia</p>
+      </article>
+      <article class="metric">
+        <p class="kicker">Costo</p>
+        <p class="value">Sin costo extra</p>
+        <p class="copy">ADP y conectores MCP sin costo adicional para el cliente</p>
+      </article>
+      <article class="metric">
+        <p class="kicker">Cobertura</p>
+        <p class="value">80%</p>
+        <p class="copy">80% de la historia generada automáticamente por el agente funcional</p>
+      </article>
+    </section>
+
+    <footer class="controls">
+      <button type="button" class="nav" id="prev">Anterior</button>
+      <p class="caption" id="caption"></p>
+      <button type="button" class="nav" id="next">Siguiente</button>
+      <button type="button" class="demo" id="demo">Iniciar demo</button>
+      <p class="keys">Flechas ← → para navegar · barra espaciadora para iniciar o pausar</p>
+    </footer>
+  </div>
+
+  <script>
+    const nodes = [
+      {
+        area: "n0",
+        title: "Historia de usuario cruda",
+        sub: "El equipo ingresa el requerimiento",
+        actor: "Equipo de Telmex",
+        icon: "doc",
+        body: "El equipo de Telmex escribe el requerimiento como llega del negocio, sin plantilla ni formato estricto. Puede ser una frase, un correo o un párrafo. ADP no pide que la historia llegue ya estructurada.",
+        extra: "<p>Ejemplo ilustrativo: «Como ejecutivo de atención, quiero consultar el estatus de una orden de servicio para responder al cliente durante la llamada.»</p><p>En este punto todavía no hay criterios de aceptación, escenarios de falla ni reglas de visibilidad.</p>"
+      },
+      {
+        area: "n1",
+        title: "graphifile lee el org",
+        sub: "Metadatos, Apex y modelo de datos",
+        actor: "graphifile",
+        icon: "scan",
+        body: "graphifile escanea el org de Salesforce de Telmex. Lee metadatos, objetos, procesos Apex y el modelo de datos, y con eso arma el contexto base para que los agentes hablen del org real y no de un supuesto.",
+        extra: "<p>En el ejemplo, el barrido reconoce el objeto Order y el modelo alrededor de la orden, y deja ver si el dato ya vive en Salesforce o si entra por integración.</p>"
+      },
+      {
+        area: "n2",
+        title: "Base de contexto ADP",
+        sub: "Gobernanza, reglas e integraciones",
+        actor: "Repositorio central de ADP",
+        icon: "layers",
+        body: "Repositorio central con gobernanza, actores, reglas de negocio, decisiones arquitectónicas previas e integraciones. Los agentes consultan esta base antes de redactar.",
+        extra: "<p>Dos reglas que aplican en esta demo: cómo se usa MuleSoft para integrar y la preferencia por funcionalidad out-of-the-box antes de construir a la medida.</p>"
+      },
+      {
+        area: "n3",
+        title: "Agente funcional (ADP)",
+        sub: "Criterios y preguntas al usuario",
+        actor: "Agente funcional de ADP",
+        icon: "agent",
+        body: "Genera de forma automática cerca del 80% de la historia: criterios de aceptación y documentación funcional. Después cuestiona al usuario sobre lo que el texto original no cubría.",
+        extra: "<ul><li>Escenarios de falla: orden inexistente o sistema que no responde.</li><li>Reglas de visibilidad: qué perfiles ven cuenta y producto.</li><li>Precondiciones: si la orden debe estar sincronizada antes de consultar.</li></ul>"
+      },
+      {
+        area: "n4",
+        title: "Detección de dependencias entre squads",
+        sub: "Alerta si otros equipos participan",
+        actor: "Agente funcional de ADP",
+        icon: "alert",
+        body: "El agente identifica si la historia necesita a otros equipos y lo marca de forma visible, antes de que el refinamiento se cierre solo en un squad.",
+        extra: "<p>En el ejemplo la alerta nombra a Catálogo, por el nombre comercial del producto, y a Order Management, por los estados de la orden.</p>"
+      },
+      {
+        area: "n5",
+        title: "Revisión humana (Product Owner)",
+        sub: "Valida, edita o pide cambios",
+        actor: "Product Owner",
+        icon: "po",
+        body: "Punto de control conversacional. El Product Owner valida, edita o solicita cambios. Si hay ajustes, el flujo regresa al agente funcional. Si aprueba, la historia sigue al agente técnico.",
+        extra: "<p>La decisión queda en la persona. El agente propone y documenta; no cierra el refinamiento por su cuenta.</p>"
+      },
+      {
+        area: "n6",
+        title: "Agente técnico (ADP)",
+        sub: "Subtareas y reglas de integración",
+        actor: "Arquitecto técnico, con el agente técnico",
+        icon: "code",
+        body: "Lo ejecuta el arquitecto técnico. El agente genera las subtareas de desarrollo y valida las reglas de integración, incluido MuleSoft, antes de la implementación.",
+        extra: "<p>En el ejemplo las subtareas apuntan a una página Lightning con componentes estándar, el manejo del timeout de la integración y la prueba del perfil de atención.</p>"
+      },
+      {
+        area: "n7",
+        title: "Actualización automática en Jira",
+        sub: "Criterios y subtareas vía MCP",
+        actor: "Conector Model Context Protocol",
+        icon: "ticket",
+        body: "Los dos agentes escriben en Jira: el funcional deja los criterios de aceptación y el técnico deja las subtareas. El canal es el conector MCP.",
+        extra: "<p>Ese conector no implica costo de licenciamiento adicional para el cliente.</p>"
+      },
+      {
+        area: "n8",
+        title: "Base de conocimiento persistente",
+        sub: "Cada decisión retroalimenta ADP",
+        actor: "Base de conocimiento de ADP",
+        icon: "book",
+        body: "Cada decisión tomada durante el refinamiento se guarda, incluidas las equivalencias de negocio que el equipo confirmó. Esa memoria regresa a la base de contexto ADP y cierra el ciclo de aprendizaje continuo.",
+        extra: "<p>En el ejemplo se confirma que «orden de servicio» equivale al objeto Order, y que si la integración no responde a tiempo se muestra el último estatus conocido.</p>"
+      }
+    ];
+
+    const beats = [
+      { node: 0, caption: "Telmex trae la historia como la dice el negocio, sin plantilla." },
+      { node: 1, edge: "s01", caption: "graphifile lee el org real: objetos, Apex y modelo de datos." },
+      { node: 2, edge: "s12", caption: "La base de contexto suma gobernanza, MuleSoft y la preferencia out-of-the-box." },
+      { node: 3, edge: "s23", caption: "El agente funcional redacta cerca del 80% y pregunta lo que falta." },
+      { node: 4, edge: "s34", moment: "deps", caption: "Alerta visible: la historia toca Catálogo y Order Management." },
+      { node: 5, edge: "s45", moment: "cambios", caption: "El Product Owner pide ajustes y el flujo regresa al agente funcional." },
+      { node: 3, edge: "adj", moment: "rework", caption: "El agente funcional incorpora falla, visibilidad y precondiciones." },
+      { node: 4, edge: "s34", replay: true, moment: "deps2", caption: "Se revalidan las dependencias. Siguen Catálogo y Order Management." },
+      { node: 5, edge: "s45", replay: true, moment: "aprobado", caption: "El Product Owner aprueba. Entra el arquitecto técnico." },
+      { node: 6, edge: "s56", caption: "El agente técnico crea subtareas y valida las reglas de MuleSoft." },
+      { node: 7, edge: "s67", caption: "Jira recibe criterios y subtareas por MCP, sin licencia adicional." },
+      { node: 8, edge: "s78", caption: "La equivalencia de negocio y las decisiones quedan guardadas." },
+      { node: 2, edge: "learn", moment: "learn", finale: true, caption: "El aprendizaje vuelve a la base de contexto. El ciclo queda cerrado." }
+    ];
+
+    const moments = {
+      deps: { tone: "warn", text: "Alerta de squads: Catálogo y Order Management tienen que participar. El nodo lo marca para que no se refine en aislamiento." },
+      cambios: { tone: "warn", text: "Hay ajustes. El PO devuelve la historia: falta el escenario en que la integración no responde, la regla de visibilidad y una precondición. Rama de regreso al agente funcional." },
+      rework: { tone: "", text: "Segunda pasada. El agente funcional reescribe criterios y documentación con los huecos que señaló el Product Owner." },
+      deps2: { tone: "warn", text: "Segunda lectura de dependencias. Catálogo y Order Management siguen en la historia. No aparece un squad nuevo." },
+      aprobado: { tone: "ok", text: "Aprobado. El Product Owner valida la historia y el flujo sigue hacia el agente técnico. La rama de ajustes no se vuelve a tomar." },
+      learn: { tone: "ok", text: "Ciclo cerrado. Las decisiones de este refinamiento, incluida la equivalencia «orden de servicio = Order», quedan en la base de contexto ADP para la siguiente historia." }
+    };
+
+    const checks = [
+      { from: 0, text: "Requerimiento en palabras del negocio" },
+      { from: 1, text: "Org leído por graphifile" },
+      { from: 2, text: "Reglas de contexto aplicadas: MuleSoft y out-of-the-box" },
+      { from: 3, text: "Cerca del 80% redactado por el agente funcional" },
+      { from: 4, text: "Dependencias: Catálogo y Order Management" },
+      { from: 6, text: "Ajustes del Product Owner incorporados" },
+      { from: 8, text: "Aprobación del Product Owner" },
+      { from: 9, text: "Subtareas técnicas y validación de MuleSoft" },
+      { from: 10, text: "Jira actualizado vía conector MCP" },
+      { from: 12, text: "Aprendizaje guardado y devuelto al contexto ADP" }
+    ];
+
+    const icons = {
+      doc: '<path d="M7 3.5h6.5L18 8v11.2a1.3 1.3 0 0 1-1.3 1.3H7.3A1.3 1.3 0 0 1 6 19.2V4.8A1.3 1.3 0 0 1 7.3 3.5H7z"/><path d="M13.5 3.6V8H18"/><path d="M8.2 12h7.2M8.2 15.5h5"/>',
+      scan: '<rect x="4" y="4" width="16" height="16" rx="2"/><path d="M4 9h16M9 9v11"/><circle cx="14.2" cy="14.2" r="2"/><path d="M15.8 15.8 18 18"/>',
+      layers: '<path d="M12 3.2 20.5 8 12 12.8 3.5 8 12 3.2z"/><path d="M3.5 12 12 16.8 20.5 12"/><path d="M3.5 16 12 20.8 20.5 16"/>',
+      agent: '<circle cx="9" cy="8" r="2.2"/><path d="M4.8 18.2v-.8A3.4 3.4 0 0 1 8.2 14h1.6"/><path d="M15.2 4.2v2.6M13.9 5.5h2.6"/><path d="M16.6 10.2l.55 1.25 1.25.55-1.25.55-.55 1.25-.55-1.25-1.25-.55 1.25-.55z"/>',
+      alert: '<path d="M12 4.2 20.2 19H3.8L12 4.2z"/><path d="M12 9.5v4.2"/><circle cx="12" cy="16.1" r=".7" fill="currentColor" stroke="none"/>',
+      po: '<circle cx="10" cy="8" r="2.3"/><path d="M5.2 18.4v-.9A3.6 3.6 0 0 1 8.8 14h2.4a3.6 3.6 0 0 1 3.6 3.5v.9"/><path d="M15.2 10.6l1.3 1.3 2.5-2.7"/>',
+      code: '<path d="M8.2 8 4.5 12l3.7 4"/><path d="M15.8 8 19.5 12l-3.7 4"/><path d="M13.2 6.4 10.6 17.6"/>',
+      ticket: '<rect x="5" y="3.8" width="14" height="16.4" rx="2"/><path d="M8 8.2h8M8 12h8M8 15.6h5"/>',
+      book: '<path d="M5 5.2A2.2 2.2 0 0 1 7.2 3h11.3v14.2H7.2A2.2 2.2 0 0 0 5 19.4z"/><path d="M5 16.8A2.2 2.2 0 0 1 7.2 14.6h11.3"/><path d="M16.2 18.2a3 3 0 1 0 .7-2"/>'
+    };
+
+    const EDGES = [
+      { id: "s01", from: 0, to: 1, kind: "main" },
+      { id: "s12", from: 1, to: 2, kind: "main" },
+      { id: "s23", from: 2, to: 3, kind: "main" },
+      { id: "s34", from: 3, to: 4, kind: "main" },
+      { id: "s45", from: 4, to: 5, kind: "main" },
+      { id: "s56", from: 5, to: 6, kind: "main" },
+      { id: "s67", from: 6, to: 7, kind: "main" },
+      { id: "s78", from: 7, to: 8, kind: "main" },
+      { id: "adj", from: 5, to: 3, kind: "adj", route: "return" },
+      { id: "learn", from: 8, to: 2, kind: "learn", route: "learn" }
+    ];
+
+    const grid = document.getElementById("grid");
+    const canvas = document.getElementById("canvas");
+    const wires = document.getElementById("wires");
+    const panel = document.getElementById("panel");
+    const caption = document.getElementById("caption");
+    const progress = document.getElementById("progress");
+    const progressBar = document.getElementById("progressBar");
+    const stepTitle = document.getElementById("stepTitle");
+    const stepCount = document.getElementById("stepCount");
+    const metrics = document.getElementById("metrics");
+    const prevBtn = document.getElementById("prev");
+    const nextBtn = document.getElementById("next");
+    const demoBtn = document.getElementById("demo");
+    const pillAdj = document.getElementById("pillAdj");
+    const pillLearn = document.getElementById("pillLearn");
+
+    const buttons = nodes.map((node, i) => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "node";
+      btn.dataset.i = String(i);
+      btn.style.setProperty("--area", node.area);
+      btn.innerHTML =
+        '<span class="node-top"><span class="icon">' + svg(node.icon) + '</span><span class="step-no">' +
+        String(i + 1).padStart(2, "0") + '</span></span><h2>' + node.title + '</h2><p class="sub">' +
+        node.sub + '</p><span class="badge" data-badge></span>';
+      btn.addEventListener("mouseenter", () => {
+        if (playing) return;
+        preview = i;
+        renderPanel();
+      });
+      btn.addEventListener("mouseleave", () => {
+        if (preview !== i) return;
+        preview = null;
+        renderPanel();
+      });
+      btn.addEventListener("click", () => {
+        pause();
+        preview = null;
+        beat = beats.findIndex((item) => item.node === i);
+        apply();
+      });
+      grid.appendChild(btn);
+      return btn;
+    });
+
+    function svg(name) {
+      return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + icons[name] + "</svg>";
+    }
+
+    const edgeEls = new Map();
+
+    function ensureEdges() {
+      if (wires.dataset.ready) return;
+      const defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
+      defs.innerHTML =
+        marker("arrow-main", "#0176D3") +
+        marker("arrow-adj", "#032D60") +
+        marker("arrow-learn", "#04844B") +
+        marker("arrow-track", "#7E93A8") +
+        marker("arrow-track-adj", "#032D60") +
+        marker("arrow-track-learn", "#04844B");
+      wires.appendChild(defs);
+      EDGES.forEach((edge) => {
+        const track = pathEl("track kind-" + edge.kind);
+        const flow = pathEl("flow kind-" + edge.kind);
+        track.setAttribute("pathLength", "1");
+        flow.setAttribute("pathLength", "1");
+        const trackMarker = edge.kind === "adj" ? "arrow-track-adj" : edge.kind === "learn" ? "arrow-track-learn" : "arrow-track";
+        track.setAttribute("marker-end", "url(#" + trackMarker + ")");
+        wires.appendChild(track);
+        wires.appendChild(flow);
+        edgeEls.set(edge.id, { track, flow, edge });
+      });
+      wires.dataset.ready = "1";
+    }
+
+    function marker(id, color) {
+      return '<marker id="' + id + '" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="' + color + '"></path></marker>';
+    }
+
+    function pathEl(cls) {
+      const el = document.createElementNS("http://www.w3.org/2000/svg", "path");
+      el.setAttribute("class", cls);
+      return el;
+    }
+
+    function box(el) {
+      const origin = canvas.getBoundingClientRect();
+      const rect = el.getBoundingClientRect();
+      const x = rect.left - origin.left + canvas.scrollLeft;
+      const y = rect.top - origin.top + canvas.scrollTop;
+      return {
+        l: x,
+        t: y,
+        r: x + rect.width,
+        b: y + rect.height,
+        w: rect.width,
+        h: rect.height,
+        cx: x + rect.width / 2,
+        cy: y + rect.height / 2
+      };
+    }
+
+    function route(edge, a, b) {
+      if (edge.route === "return") return returnPath(a, b);
+      if (edge.route === "learn") return learnPath(a, b);
+      return autoPath(a, b);
+    }
+
+    function autoPath(a, b) {
+      const dx = b.cx - a.cx;
+      const dy = b.cy - a.cy;
+      if (Math.abs(dy) < 28) {
+        return dx >= 0
+          ? "M " + a.r + " " + a.cy + " L " + b.l + " " + b.cy
+          : "M " + a.l + " " + a.cy + " L " + b.r + " " + b.cy;
+      }
+      if (Math.abs(dx) < 28) {
+        return dy >= 0
+          ? "M " + a.cx + " " + a.b + " L " + b.cx + " " + b.t
+          : "M " + a.cx + " " + a.t + " L " + b.cx + " " + b.b;
+      }
+      if (dy > 0 && dx < 0) {
+        const y = b.cy;
+        const radius = 12;
+        return "M " + a.cx + " " + a.b + " L " + a.cx + " " + (y - radius) +
+          " Q " + a.cx + " " + y + " " + (a.cx - radius) + " " + y + " L " + b.r + " " + y;
+      }
+      const mid = (a.cy + b.cy) / 2;
+      const x1 = dx > 0 ? a.r : a.l;
+      const x2 = dx > 0 ? b.l : b.r;
+      return "M " + x1 + " " + a.cy + " L " + x1 + " " + mid + " L " + x2 + " " + mid + " L " + x2 + " " + b.cy;
+    }
+
+    function returnPath(a, b) {
+      if (a.t > b.b && Math.abs(a.cx - b.cx) < 80) {
+        const x = Math.min(a.l, b.l) - 16;
+        const y1 = a.t + 16;
+        const y2 = b.b - 8;
+        return "M " + a.l + " " + y1 + " L " + x + " " + y1 + " L " + x + " " + y2 + " L " + b.l + " " + y2;
+      }
+      const x = Math.min(a.l, b.l) - 22;
+      return "M " + a.l + " " + a.cy + " L " + x + " " + a.cy + " L " + x + " " + b.cy + " L " + b.l + " " + b.cy;
+    }
+
+    function learnPath(a, b) {
+      if (Math.abs(a.cx - b.cx) < 36) {
+        const x = Math.min(a.l, b.l) - 24;
+        return "M " + a.l + " " + a.cy + " L " + x + " " + a.cy + " L " + x + " " + b.cy + " L " + b.l + " " + b.cy;
+      }
+      const left = Math.min(a.l, b.l) - 26;
+      const top = Math.min(a.t, b.t) - 30;
+      return "M " + a.l + " " + a.cy + " L " + left + " " + a.cy + " L " + left + " " + top +
+        " L " + b.cx + " " + top + " L " + b.cx + " " + b.t;
+    }
+
+    function layout() {
+      ensureEdges();
+      const boxes = buttons.map(box);
+      if (!boxes[0] || boxes[0].w < 2) return;
+      const sizeW = Math.max(canvas.scrollWidth, canvas.clientWidth);
+      const sizeH = Math.max(canvas.scrollHeight, canvas.clientHeight);
+      wires.setAttribute("width", String(sizeW));
+      wires.setAttribute("height", String(sizeH));
+      wires.style.width = sizeW + "px";
+      wires.style.height = sizeH + "px";
+
+      EDGES.forEach((edge) => {
+        const d = route(edge, boxes[edge.from], boxes[edge.to]);
+        const els = edgeEls.get(edge.id);
+        els.track.setAttribute("d", d);
+        els.flow.setAttribute("d", d);
+      });
+
+      const po = boxes[5];
+      const funcional = boxes[3];
+      const conocimiento = boxes[8];
+      const contexto = boxes[2];
+      if (po.t > funcional.b && Math.abs(po.cx - funcional.cx) < 80) {
+        placePill(pillAdj, Math.min(po.l, funcional.l) - 16, (po.t + funcional.b) / 2);
+      } else {
+        placePill(pillAdj, Math.min(po.l, funcional.l) - 22, (po.cy + funcional.cy) / 2);
+      }
+      if (Math.abs(conocimiento.cx - contexto.cx) < 36) {
+        placePill(pillLearn, Math.min(conocimiento.l, contexto.l) - 24, (conocimiento.cy + contexto.cy) / 2);
+      } else {
+        const top = Math.min(conocimiento.t, contexto.t) - 30;
+        placePill(pillLearn, (Math.min(conocimiento.l, contexto.l) - 26 + contexto.cx) / 2, top);
+      }
+      pillAdj.classList.add("placed");
+      pillLearn.classList.add("placed");
+    }
+
+    function placePill(el, x, y) {
+      el.style.left = x + "px";
+      el.style.top = y + "px";
+    }
+
+    let beat = 0;
+    let preview = null;
+    let playing = false;
+    let timer = null;
+    const DWELL = 2500;
+
+    function drawnSet() {
+      const ids = new Set();
+      for (let i = 0; i <= beat; i += 1) {
+        if (beats[i].edge) ids.add(beats[i].edge);
+      }
+      return ids;
+    }
+
+    function apply() {
+      const current = beats[beat];
+      const drawn = drawnSet();
+      const seen = new Set();
+      for (let i = 0; i <= beat; i += 1) seen.add(beats[i].node);
+
+      buttons.forEach((btn, i) => {
+        btn.classList.toggle("is-active", i === current.node);
+        btn.classList.toggle("is-visited", seen.has(i) && i !== current.node);
+        btn.setAttribute("aria-current", i === current.node ? "step" : "false");
+        const badge = btn.querySelector("[data-badge]");
+        paintBadge(badge, i, current);
+      });
+      buttons[4].classList.toggle("is-alert", current.node === 4);
+
+      edgeEls.forEach((els, id) => {
+        const on = drawn.has(id);
+        const isActive = current.edge === id;
+        if (on && isActive && current.replay) {
+          els.flow.classList.remove("drawn");
+          void els.flow.getBoundingClientRect();
+        }
+        els.flow.classList.toggle("drawn", on);
+        els.flow.classList.toggle("active", on && isActive);
+        const markerId = els.edge.kind === "adj" ? "arrow-adj" : els.edge.kind === "learn" ? "arrow-learn" : "arrow-main";
+        if (on) els.flow.setAttribute("marker-end", "url(#" + markerId + ")");
+        else els.flow.removeAttribute("marker-end");
+        els.track.classList.toggle("covered", on);
+      });
+
+      pillAdj.classList.toggle("is-on", drawn.has("adj"));
+      pillLearn.classList.toggle("is-on", drawn.has("learn"));
+
+      const pct = Math.round(((beat + 1) / beats.length) * 100);
+      progressBar.style.width = pct + "%";
+      progress.setAttribute("aria-valuenow", String(pct));
+      stepTitle.textContent = nodes[current.node].title;
+      stepCount.textContent = "Nodo " + (current.node + 1) + " de 9 · paso " + (beat + 1) + " de " + beats.length;
+      caption.textContent = current.caption;
+      metrics.classList.toggle("is-complete", Boolean(current.finale));
+      updateControls();
+      if (!preview || playing) renderPanel();
+      const active = buttons[current.node];
+      const view = active.getBoundingClientRect();
+      const frame = canvas.getBoundingClientRect();
+      if (view.top < frame.top + 8 || view.bottom > frame.bottom - 8) {
+        active.scrollIntoView({ block: "nearest", inline: "nearest", behavior: "smooth" });
+      }
+    }
+
+    function paintBadge(badge, index, current) {
+      badge.className = "badge";
+      badge.textContent = "";
+      if (index === 4 && beat >= 4) {
+        badge.textContent = "Catálogo · Order Management";
+        badge.classList.add("show", "warn");
+      }
+      if (index === 5 && current.node === 5 && current.moment === "cambios") {
+        badge.textContent = "Solicita cambios";
+        badge.classList.add("show", "back");
+      }
+      if (index === 5 && beat >= 8) {
+        badge.textContent = "Aprueba";
+        badge.classList.add("show", "ok");
+      }
+      if (index === 3 && current.moment === "rework") {
+        badge.textContent = "Segunda pasada";
+        badge.classList.add("show", "back");
+      }
+      if (index === 2 && current.finale) {
+        badge.textContent = "Contexto actualizado";
+        badge.classList.add("show", "ok");
+      }
+    }
+
+    function renderPanel() {
+      const current = beats[beat];
+      const index = preview == null ? current.node : preview;
+      const node = nodes[index];
+      const previewing = preview != null && preview !== current.node;
+      const moment = !previewing && current.moment ? moments[current.moment] : null;
+      const doneItems = checks.map((item, itemIndex) => {
+        const done = beat >= item.from;
+        return { ...item, done, itemIndex };
+      });
+      const lastDone = doneItems.reduce((acc, item) => (item.done ? item.itemIndex : acc), -1);
+
+      panel.innerHTML =
+        '<p class="eyebrow">' + (previewing ? "Vista previa" : "En este momento") + "</p>" +
+        "<h2>" + node.title + "</h2>" +
+        '<p class="actor">' + node.actor + "</p>" +
+        (moment ? '<div class="callout ' + moment.tone + '">' + moment.text + "</div>" : "") +
+        '<div class="body"><p>' + node.body + "</p></div>" +
+        '<div class="story"><h3>Historia en construcción</h3>' +
+        '<p class="hint">Ejemplo ilustrativo para la demo. No es un ticket real de Telmex.</p>' +
+        '<ul class="checks">' + doneItems.map((item) => {
+          const cls = item.done ? "is-done" + (item.itemIndex === lastDone ? " is-current" : "") : "";
+          return '<li class="' + cls + '"><span class="mark"></span><span>' + item.text + "</span></li>";
+        }).join("") + "</ul></div>" +
+        '<div class="body">' + node.extra + "</div>";
+      panel.scrollTop = 0;
+    }
+
+    function updateControls() {
+      prevBtn.disabled = beat === 0;
+      nextBtn.disabled = beat === beats.length - 1;
+      const atEnd = beat === beats.length - 1 && !playing;
+      demoBtn.textContent = playing ? "Pausar" : atEnd ? "Reiniciar demo" : "Iniciar demo";
+      demoBtn.classList.toggle("is-pause", playing);
+      demoBtn.setAttribute("aria-pressed", playing ? "true" : "false");
+    }
+
+    function pause() {
+      playing = false;
+      clearInterval(timer);
+      timer = null;
+      updateControls();
+    }
+
+    function play() {
+      if (playing) return;
+      if (beat === beats.length - 1) {
+        beat = 0;
+        preview = null;
+        apply();
+      }
+      playing = true;
+      updateControls();
+      timer = setInterval(() => {
+        if (beat >= beats.length - 1) {
+          pause();
+          return;
+        }
+        beat += 1;
+        preview = null;
+        apply();
+      }, DWELL);
+    }
+
+    function step(delta) {
+      const next = beat + delta;
+      if (next < 0 || next >= beats.length) return;
+      beat = next;
+      preview = null;
+      apply();
+      if (playing) {
+        clearInterval(timer);
+        timer = setInterval(() => {
+          if (beat >= beats.length - 1) {
+            pause();
+            return;
+          }
+          beat += 1;
+          preview = null;
+          apply();
+        }, DWELL);
+      }
+    }
+
+    prevBtn.addEventListener("click", () => step(-1));
+    nextBtn.addEventListener("click", () => step(1));
+    demoBtn.addEventListener("click", () => {
+      if (playing) pause();
+      else play();
+    });
+
+    document.addEventListener("keydown", (event) => {
+      const tag = event.target && event.target.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA") return;
+      if (event.key === "ArrowRight") {
+        event.preventDefault();
+        step(1);
+      } else if (event.key === "ArrowLeft") {
+        event.preventDefault();
+        step(-1);
+      } else if (event.key === " " || event.code === "Space") {
+        event.preventDefault();
+        if (playing) pause();
+        else play();
+      }
+    });
+
+    const params = new URLSearchParams(location.search);
+    const initial = Number(params.get("step"));
+    if (Number.isInteger(initial) && initial >= 0 && initial < beats.length) beat = initial;
+
+    window.addEventListener("resize", layout);
+    if ("ResizeObserver" in window) {
+      const observer = new ResizeObserver(() => layout());
+      observer.observe(canvas);
+    }
+
+    layout();
+    apply();
+    requestAnimationFrame(layout);
+
+    if (params.get("play") === "1") play();
+  </script>
+</body>
+</html>
